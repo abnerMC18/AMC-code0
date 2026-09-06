@@ -55,6 +55,26 @@ app.post("/api/provas", verificarAutenticacao, async (req, res) => {
   res.status(201).json(data);
 });
 
+// NOVA ROTA: Atualizar uma prova/atividade existente (usada na edição do frontend)
+app.put("/api/provas/:id", verificarAutenticacao, async (req, res) => {
+  const { id } = req.params;
+  const { title, tipo, start, descricao } = req.body;
+
+  const { data, error } = await supabase
+    .from("provas")
+    .update({ title, tipo, start, descricao })
+    .eq("id", id)
+    .select();
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  if (!data || data.length === 0) {
+    return res.status(404).json({ error: "Prova não encontrada." });
+  }
+
+  res.json({ message: "Prova atualizada com sucesso", data: data[0] });
+});
+
 app.delete("/api/provas/:id", verificarAutenticacao, async (req, res) => {
   const { id } = req.params;
   const { error } = await supabase.from("provas").delete().eq("id", id);
