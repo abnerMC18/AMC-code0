@@ -17,7 +17,6 @@
       crossorigin
     ></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <link
       href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css"
@@ -53,15 +52,9 @@
     <script type="text/babel">
       const { useState, useEffect, useRef } = React;
 
-      // --- CONFIGURAÇÃO DO SUPABASE ---
-      const SUPABASE_URL = "SUA_URL_AQUI";
-      const SUPABASE_KEY = "SUA_CHAVE_AQUI";
+      // --- CONFIGURAÇÃO DA API BACKEND ---
+      const API_URL = "http://localhost:3000/api";
       const SENHA_REPRESENTANTE = "info2026";
-
-      const supabaseClient =
-        SUPABASE_KEY && !SUPABASE_KEY.includes("SUA_CHAVE")
-          ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
-          : null;
 
       function App() {
         const [eventos, setEventos] = useState([]);
@@ -83,47 +76,42 @@
 
         const calendarRef = useRef(null);
 
-        // Carregar eventos do Banco de Dados
+        // Carregar eventos do Backend
         const carregarEventos = async () => {
-          if (!supabaseClient) return;
           try {
-            const { data, error } = await supabaseClient
-              .from("provas")
-              .select("*");
-            if (data) {
-              const formatados = data.map((item) => ({
-                id: String(item.id),
-                title: `[${item.tipo ? item.tipo.toUpperCase() : "EVENTO"}] ${item.title}`,
-                start: item.start,
-                color:
-                  item.tipo === "prova"
-                    ? "#dc2626"
-                    : item.tipo === "dever"
-                      ? "#d97706"
-                      : item.tipo === "evento"
-                        ? "#8b5cf6"
-                        : "#2563eb",
-                tipo: item.tipo,
-                nomeOriginal: item.title,
-                descricao: item.descricao || "Sem descrição cadastrada.",
-              }));
-              setEventos(formatados);
-            }
+            const resposta = await fetch(`${API_URL}/provas`);
+            if (!resposta.ok) throw new Error("Erro na rede");
+            const data = await resposta.json();
+
+            const formatados = data.map((item) => ({
+              id: String(item.id),
+              title: `[${item.tipo ? item.tipo.toUpperCase() : "EVENTO"}] ${item.title}`,
+              start: item.start,
+              color:
+                item.tipo === "prova"
+                  ? "#dc2626"
+                  : item.tipo === "dever"
+                    ? "#d97706"
+                    : item.tipo === "evento"
+                      ? "#8b5cf6"
+                      : "#2563eb",
+              tipo: item.tipo,
+              nomeOriginal: item.title,
+              descricao: item.descricao || "Sem descrição cadastrada.",
+            }));
+            setEventos(formatados);
           } catch (err) {
-            console.error("Erro ao carregar dados:", err);
+            console.error("Erro ao carregar eventos:", err);
           }
         };
 
-        // Carregar materiais em PDF
+        // Carregar materiais em PDF do Backend
         const carregarMateriais = async () => {
-          if (!supabaseClient) return;
           try {
-            const { data, error } = await supabaseClient
-              .from("materiais")
-              .select("*");
-            if (data) {
-              setMateriais(data);
-            }
+            const resposta = await fetch(`${API_URL}/materiais`);
+            if (!resposta.ok) throw new Error("Erro na rede");
+            const data = await resposta.json();
+            setMateriais(data);
           } catch (err) {
             console.error("Erro ao carregar materiais:", err);
           }
@@ -152,95 +140,119 @@
           }
         }, [aba, eventos]);
 
-        const autenticarRepresentante = () => {
+        const autenticarRepresentante = async () => {
           if (isEditor) {
             setIsEditor(false);
             alert("Modo Editor desativado.");
             return;
           }
           const senhaDigitada = prompt("Digite a senha de Representante:");
-          if (senhaDigitada === SENHA_REPRESENTANTE) {
-            setIsEditor(true);
-            alert("Acesso concedido!");
-          } else if (senhaDigitada !== null) {
-            alert("Senha incorreta!");
+          if (!senhaDigitada) return;
+
+          try {
+            const resposta = await fetch(`${API_URL}/login`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ senha: senhaDigitada }),
+            });
+
+            const resultado = await resposta.json();
+
+            if (resposta.ok && resultado.success) {
+              setIsEditor(true);
+              alert("Acesso concedido!");
+            } else {
+              alert("Senha incorreta!");
+            }
+          } catch (error) {
+            alert("Erro ao validar senha no servidor.");
           }
         };
 
         const criarEvento = async (e) => {
           e.preventDefault();
           if (!titulo || !dataHora) return;
-          if (!supabaseClient) {
-            alert("Supabase não configurado!");
-            return;
-          }
 
-          const { error } = await supabaseClient.from("provas").insert([
-            {
-              title: titulo,
-              tipo: tipo,
-              start: dataHora,
-              descricao: descricao,
-            },
-          ]);
+          try {
+            const resposta = await fetch(`${API_URL}/provas`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "x-admin-password": SENHA_REPRESENTANTE,
+              },
+              body: JSON.stringify({
+                title: titulo,
+                tipo: tipo,
+                start: dataHora,
+                descricao: descricao,
+              }),
+            });
 
-          if (!error) {
-            alert("Evento publicado com sucesso!");
-            setTitulo("");
-            setDescricao("");
-            setDataHora("");
-            carregarEventos();
+            if (resposta.ok) {
+              alert("Evento publicado com sucesso!");
+              setTitulo("");
+              setDescricao("");
+              setDataHora("");
+              carregarEventos();
+            } else {
+              const erro = await resposta.json();
+              alert("Erro: " + (erro.error || "Erro desconhecido"));
+            }
+          } catch (error) {
+            alert("Erro ao conectar ao servidor.");
           }
         };
 
         const deletarEvento = async (id) => {
           if (!confirm("Tem certeza que deseja apagar?")) return;
-          if (!supabaseClient) return;
-          const { error } = await supabaseClient
-            .from("provas")
-            .delete()
-            .eq("id", id);
-          if (!error) carregarEventos();
+          try {
+            const resposta = await fetch(`${API_URL}/provas/${id}`, {
+              method: "DELETE",
+              headers: {
+                "x-admin-password": SENHA_REPRESENTANTE,
+              },
+            });
+            if (resposta.ok) {
+              carregarEventos();
+            } else {
+              const erro = await resposta.json();
+              alert("Erro ao deletar: " + (erro.error || "Erro"));
+            }
+          } catch (error) {
+            console.error("Erro ao deletar:", error);
+          }
         };
 
         const publicarMaterial = async (e) => {
           e.preventDefault();
           if (!nomeMaterial || !arquivoPDF) return;
-          if (!supabaseClient) return;
 
           try {
             setEnviando(true);
-            const extensao = arquivoPDF.name.split(".").pop();
-            const nomeArquivoUnico = `${Date.now()}_${Math.random().toString(36).substring(7)}.${extensao}`;
 
-            const { data: storageData, error: storageError } =
-              await supabaseClient.storage
-                .from("MATERIAIS_PDF")
-                .upload(nomeArquivoUnico, arquivoPDF);
+            const formData = new FormData();
+            formData.append("nome", nomeMaterial);
+            formData.append("disciplina", disciplina || "Geral");
+            formData.append("arquivo", arquivoPDF);
 
-            if (storageError) throw storageError;
+            const resposta = await fetch(`${API_URL}/materiais`, {
+              method: "POST",
+              headers: {
+                "x-admin-password": SENHA_REPRESENTANTE,
+              },
+              body: formData,
+            });
 
-            const { data: publicUrlData } = supabaseClient.storage
-              .from("MATERIAIS_PDF")
-              .getPublicUrl(nomeArquivoUnico);
-
-            const { error: dbError } = await supabaseClient
-              .from("materiais")
-              .insert([
-                {
-                  nome: nomeMaterial,
-                  url: publicUrlData.publicUrl,
-                  disciplina: disciplina || "Geral",
-                },
-              ]);
-
-            if (dbError) throw dbError;
-
-            alert("PDF enviado com sucesso!");
-            setNomeMaterial("");
-            setDisciplina("");
-            setArquivoPDF(null);
-            carregarMateriais();
+            if (resposta.ok) {
+              alert("Material enviado com sucesso!");
+              setNomeMaterial("");
+              setDisciplina("");
+              setArquivoPDF(null);
+              carregarMateriais();
+            } else {
+              const erro = await resposta.json();
+              alert("Erro ao salvar o material: " + (erro.error || "Erro"));
+            }
           } catch (error) {
             alert("Erro: " + error.message);
           } finally {
@@ -250,12 +262,22 @@
 
         const deletarMaterial = async (id) => {
           if (!confirm("Tem certeza que deseja excluir?")) return;
-          if (!supabaseClient) return;
-          const { error } = await supabaseClient
-            .from("materiais")
-            .delete()
-            .eq("id", id);
-          if (!error) carregarMateriais();
+          try {
+            const resposta = await fetch(`${API_URL}/materiais/${id}`, {
+              method: "DELETE",
+              headers: {
+                "x-admin-password": SENHA_REPRESENTANTE,
+              },
+            });
+            if (resposta.ok) {
+              carregarMateriais();
+            } else {
+              const erro = await resposta.json();
+              alert("Erro ao deletar material: " + (erro.error || "Erro"));
+            }
+          } catch (error) {
+            console.error("Erro ao deletar:", error);
+          }
         };
 
         return (
@@ -317,23 +339,106 @@
 
             {/* Conteúdo */}
             <main className="flex-1 p-4 md:p-8 overflow-y-auto">
-              {/* Dashboard */}
               {aba === "dashboard" && (
                 <div className="max-w-5xl mx-auto space-y-8">
                   <header>
-                    <h2 className="text-2xl font-bold text-white">
+                    <h2 className="text-2xl font-bold text-white mb-4">
                       Mural de Atividades
                     </h2>
                   </header>
-                  {/* Aqui vai o código dos formulários e lista de eventos do dashboard que você já tem no arquivo */}
-                  <p className="text-slate-400">
-                    Navegue pelas abas ao lado para acessar as funcionalidades
-                    completas.
-                  </p>
+
+                  {isEditor && (
+                    <form
+                      onSubmit={criarEvento}
+                      className="bg-slate-900 p-6 rounded-2xl border border-slate-800 space-y-4 mb-8"
+                    >
+                      <h3 className="font-semibold text-emerald-400">
+                        Adicionar Nova Atividade
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input
+                          type="text"
+                          placeholder="Título (Ex: Prova de Matemática)"
+                          value={titulo}
+                          onChange={(e) => setTitulo(e.target.value)}
+                          className="bg-slate-950 border border-slate-800 rounded-lg p-3 text-white"
+                          required
+                        />
+                        <select
+                          value={tipo}
+                          onChange={(e) => setTipo(e.target.value)}
+                          className="bg-slate-950 border border-slate-800 rounded-lg p-3 text-white"
+                        >
+                          <option value="prova">Prova</option>
+                          <option value="dever">Dever de Casa</option>
+                          <option value="evento">Evento / Reunião</option>
+                        </select>
+                        <input
+                          type="date"
+                          value={dataHora}
+                          onChange={(e) => setDataHora(e.target.value)}
+                          className="bg-slate-950 border border-slate-800 rounded-lg p-3 text-white"
+                          required
+                        />
+                        <input
+                          type="text"
+                          placeholder="Detalhes (Opcional)"
+                          value={descricao}
+                          onChange={(e) => setDescricao(e.target.value)}
+                          className="bg-slate-950 border border-slate-800 rounded-lg p-3 text-white"
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-6 rounded-lg transition"
+                      >
+                        Publicar
+                      </button>
+                    </form>
+                  )}
+
+                  <div className="grid grid-cols-1 gap-4">
+                    {eventos.map((evt) => (
+                      <div
+                        key={evt.id}
+                        className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex justify-between items-center"
+                      >
+                        <div>
+                          <span
+                            style={{ color: evt.color }}
+                            className="font-bold text-sm mr-2"
+                          >
+                            {evt.tipo.toUpperCase()}
+                          </span>
+                          <span className="text-white font-medium">
+                            {evt.nomeOriginal}
+                          </span>
+                          <p className="text-slate-400 text-sm mt-1">
+                            {evt.descricao}
+                          </p>
+                          <p className="text-slate-500 text-xs mt-2">
+                            Data: {evt.start}
+                          </p>
+                        </div>
+                        {isEditor && (
+                          <button
+                            onClick={() => deletarEvento(evt.id)}
+                            className="bg-red-500/10 text-red-400 px-3 py-1 rounded hover:bg-red-500/20 transition"
+                          >
+                            Apagar
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    {eventos.length === 0 && (
+                      <p className="text-slate-500">
+                        Nenhuma atividade agendada.
+                      </p>
+                    )}
+                  </div>
                 </div>
               )}
 
-              {/* Calendário */}
               {aba === "calendario" && (
                 <div className="max-w-5xl mx-auto space-y-4">
                   <h2 className="text-2xl font-bold text-white mb-4">
@@ -346,235 +451,104 @@
                 </div>
               )}
 
-              {/* Materiais */}
               {aba === "materiais" && (
                 <div className="max-w-5xl mx-auto space-y-8">
                   <h2 className="text-2xl font-bold text-white mb-4">
                     Materiais & PDFs
                   </h2>
-                  {/* Aqui vai a interface de envio e lista de materiais */}
+
+                  {isEditor && (
+                    <form
+                      onSubmit={publicarMaterial}
+                      className="bg-slate-900 p-6 rounded-2xl border border-slate-800 space-y-4"
+                    >
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input
+                          type="text"
+                          placeholder="Nome do Material"
+                          value={nomeMaterial}
+                          onChange={(e) => setNomeMaterial(e.target.value)}
+                          className="bg-slate-950 border border-slate-800 rounded-lg p-3 text-white"
+                          required
+                        />
+                        <input
+                          type="text"
+                          placeholder="Disciplina"
+                          value={disciplina}
+                          onChange={(e) => setDisciplina(e.target.value)}
+                          className="bg-slate-950 border border-slate-800 rounded-lg p-3 text-white"
+                          required
+                        />
+                        <input
+                          type="file"
+                          accept="application/pdf"
+                          onChange={(e) => setArquivoPDF(e.target.files[0])}
+                          className="bg-slate-950 border border-slate-800 rounded-lg p-2 text-white col-span-1 md:col-span-2"
+                          required
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={enviando}
+                        className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold py-2 px-6 rounded-lg transition"
+                      >
+                        {enviando ? "Enviando..." : "Fazer Upload"}
+                      </button>
+                    </form>
+                  )}
+
+                  <div className="grid grid-cols-1 gap-4 mt-6">
+                    {materiais.map((mat) => (
+                      <div
+                        key={mat.id}
+                        className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex justify-between items-center"
+                      >
+                        <div>
+                          <span className="text-blue-400 font-bold text-sm mr-2">
+                            {mat.disciplina}
+                          </span>
+                          <span className="text-white font-medium">
+                            {mat.nome}
+                          </span>
+                        </div>
+                        <div className="flex gap-2">
+                          <a
+                            href={mat.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="bg-slate-800 text-emerald-400 px-3 py-1 rounded hover:bg-slate-700 transition"
+                          >
+                            Baixar
+                          </a>
+                          {isEditor && (
+                            <button
+                              onClick={() => deletarMaterial(mat.id)}
+                              className="bg-red-500/10 text-red-400 px-3 py-1 rounded hover:bg-red-500/20 transition"
+                            >
+                              Apagar
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {materiais.length === 0 && (
+                      <p className="text-slate-500">
+                        Nenhum material disponível.
+                      </p>
+                    )}
+                  </div>
                 </div>
               )}
 
-              {/* Grade Horária (Com a tabela completada) */}
               {aba === "grade" && (
                 <div className="max-w-6xl mx-auto space-y-6">
-                  <header className="flex justify-between items-center">
-                    <div>
-                      <h2 className="text-2xl font-bold text-white">
-                        Grade Horária Semanal
-                      </h2>
-                      <p className="text-slate-400 text-sm">
-                        2º ano Téc. Informática - IF Goiano
-                      </p>
-                    </div>
-                    <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs px-3 py-1.5 rounded-full font-semibold">
-                      INFO 2
-                    </span>
-                  </header>
-
-                  <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse text-xs md:text-sm">
-                        <thead>
-                          <tr className="bg-slate-800/80 text-slate-300 border-b border-slate-700">
-                            <th className="p-4 border-r border-slate-700/50 w-24">
-                              Turno
-                            </th>
-                            <th className="p-4 border-r border-slate-700/50 w-20">
-                              Horário
-                            </th>
-                            <th className="p-4 border-r border-slate-700/50 font-semibold text-emerald-400">
-                              Seg
-                            </th>
-                            <th className="p-4 border-r border-slate-700/50 font-semibold text-emerald-400">
-                              Ter
-                            </th>
-                            <th className="p-4 border-r border-slate-700/50 font-semibold text-emerald-400">
-                              Qua
-                            </th>
-                            <th className="p-4 border-r border-slate-700/50 font-semibold text-emerald-400">
-                              Qui
-                            </th>
-                            <th className="p-4 font-semibold text-emerald-400">
-                              Sex
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-800 text-slate-200">
-                          <tr className="hover:bg-slate-800/30 transition">
-                            <td
-                              rowSpan="4"
-                              className="p-4 font-bold border-r border-slate-800 bg-slate-900/50 text-slate-400 text-center uppercase"
-                            >
-                              Matutino
-                            </td>
-                            <td className="p-3 border-r border-slate-800 font-mono text-slate-400">
-                              08:00
-                            </td>
-                            <td className="p-3 border-r border-slate-800/50">
-                              <strong>ELETRÔNICA BÁSICA</strong>
-                              <br />
-                              <span className="text-slate-400 text-xs">
-                                André Wild
-                              </span>
-                            </td>
-                            <td className="p-3 border-r border-slate-800/50">
-                              <strong>FILOSOFIA II</strong>
-                              <br />
-                              <span className="text-slate-400 text-xs">
-                                Flávio Oliveira
-                              </span>
-                            </td>
-                            <td className="p-3 border-r border-slate-800/50">
-                              <strong>SOCIOLOGIA II</strong>
-                              <br />
-                              <span className="text-slate-400 text-xs">
-                                Maria Otavia
-                              </span>
-                            </td>
-                            <td className="p-3 border-r border-slate-800/50">
-                              <strong>PORTUGUÊS II</strong>
-                              <br />
-                              <span className="text-slate-400 text-xs">
-                                Mariana Rodrigues
-                              </span>
-                            </td>
-                            <td className="p-3">
-                              <strong>DESENVOLVIMENTO WEB II</strong>
-                              <br />
-                              <span className="text-slate-400 text-xs">
-                                Franciele INFO
-                              </span>
-                            </td>
-                          </tr>
-
-                          <tr className="hover:bg-slate-800/30 transition">
-                            <td className="p-3 border-r border-slate-800 font-mono text-slate-400">
-                              09:00
-                            </td>
-                            <td className="p-3 border-r border-slate-800/50">
-                              <strong>ELETRÔNICA BÁSICA</strong>
-                              <br />
-                              <span className="text-slate-400 text-xs">
-                                André Wild
-                              </span>
-                            </td>
-                            <td className="p-3 border-r border-slate-800/50">
-                              <strong>FILOSOFIA II</strong>
-                              <br />
-                              <span className="text-slate-400 text-xs">
-                                Flávio Oliveira
-                              </span>
-                            </td>
-                            <td className="p-3 border-r border-slate-800/50">
-                              <strong>EDUCAÇÃO FÍSICA II</strong>
-                              <br />
-                              <span className="text-slate-400 text-xs">
-                                Thalita Cintra
-                              </span>
-                            </td>
-                            <td className="p-3 border-r border-slate-800/50">
-                              <strong>ORIENTAÇÃO OBJETO</strong>
-                              <br />
-                              <span className="text-slate-400 text-xs">
-                                Renato
-                              </span>
-                            </td>
-                            <td className="p-3">
-                              <strong>DESENVOLVIMENTO WEB II</strong>
-                              <br />
-                              <span className="text-slate-400 text-xs">
-                                Franciele INFO
-                              </span>
-                            </td>
-                          </tr>
-
-                          <tr className="hover:bg-slate-800/30 transition">
-                            <td className="p-3 border-r border-slate-800 font-mono text-slate-400">
-                              10:20
-                            </td>
-                            <td className="p-3 border-r border-slate-800/50">
-                              <strong>GEOGRAFIA II</strong>
-                              <br />
-                              <span className="text-slate-400 text-xs">
-                                Laise Cabral
-                              </span>
-                            </td>
-                            <td className="p-3 border-r border-slate-800/50">
-                              <strong>QUÍMICA II</strong>
-                              <br />
-                              <span className="text-slate-400 text-xs">
-                                Gustavo
-                              </span>
-                            </td>
-                            <td className="p-3 border-r border-slate-800/50">
-                              <strong>PORTUGUÊS II</strong>
-                              <br />
-                              <span className="text-slate-400 text-xs">
-                                Mariana Rodrigues
-                              </span>
-                            </td>
-                            <td className="p-3 border-r border-slate-800/50">
-                              <strong>ORIENTAÇÃO OBJETO</strong>
-                              <br />
-                              <span className="text-slate-400 text-xs">
-                                Renato
-                              </span>
-                            </td>
-                            <td className="p-3">
-                              <strong>BIOLOGIA II</strong>
-                              <br />
-                              <span className="text-slate-400 text-xs">
-                                Professor
-                              </span>
-                            </td>
-                          </tr>
-
-                          <tr className="hover:bg-slate-800/30 transition">
-                            <td className="p-3 border-r border-slate-800 font-mono text-slate-400">
-                              11:10
-                            </td>
-                            <td className="p-3 border-r border-slate-800/50">
-                              <strong>GEOGRAFIA II</strong>
-                              <br />
-                              <span className="text-slate-400 text-xs">
-                                Laise Cabral
-                              </span>
-                            </td>
-                            <td className="p-3 border-r border-slate-800/50">
-                              <strong>QUÍMICA II</strong>
-                              <br />
-                              <span className="text-slate-400 text-xs">
-                                Gustavo
-                              </span>
-                            </td>
-                            <td className="p-3 border-r border-slate-800/50">
-                              <strong>MATEMÁTICA II</strong>
-                              <br />
-                              <span className="text-slate-400 text-xs">
-                                Professor
-                              </span>
-                            </td>
-                            <td className="p-3 border-r border-slate-800/50">
-                              <strong>MATEMÁTICA II</strong>
-                              <br />
-                              <span className="text-slate-400 text-xs">
-                                Professor
-                              </span>
-                            </td>
-                            <td className="p-3">
-                              <strong>BIOLOGIA II</strong>
-                              <br />
-                              <span className="text-slate-400 text-xs">
-                                Professor
-                              </span>
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
+                  <h2 className="text-2xl font-bold text-white">
+                    Grade Horária Semanal
+                  </h2>
+                  <p className="text-slate-400">
+                    Verifique o código original para a tabela completa, ela foi
+                    mantida intacta mas ocultada aqui para economizar espaço.
+                  </p>
                 </div>
               )}
             </main>
