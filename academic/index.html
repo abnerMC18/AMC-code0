@@ -110,9 +110,9 @@
                     method: "DELETE",
                     headers: { "x-admin-password": SENHA_REPRESENTANTE },
                   }).catch((err) =>
-                    console.error("Erro ao excluir atividade vencida:", err)
-                  )
-                )
+                    console.error("Erro ao excluir atividade vencida:", err),
+                  ),
+                ),
               );
             }
 
@@ -215,7 +215,7 @@
           setEditandoId(evt.id);
           setTitulo(evt.nomeOriginal);
           setDescricao(
-            evt.descricao === "Sem descrição cadastrada." ? "" : evt.descricao
+            evt.descricao === "Sem descrição cadastrada." ? "" : evt.descricao,
           );
           setTipo(evt.tipo);
           setDataHora((evt.start || "").slice(0, 10));
@@ -260,7 +260,7 @@
               alert(
                 editandoId
                   ? "Atividade atualizada com sucesso!"
-                  : "Evento publicado com sucesso!"
+                  : "Evento publicado com sucesso!",
               );
               cancelarEdicao();
               carregarEventos();
@@ -418,8 +418,8 @@
                       Mural de Atividades
                     </h2>
                     <p className="text-slate-500 text-xs">
-                      Atividades são removidas automaticamente assim que a
-                      data de prazo passa.
+                      Atividades são removidas automaticamente assim que a data
+                      de prazo passa.
                     </p>
                   </header>
 
@@ -663,169 +663,303 @@
                       <tbody className="divide-y divide-slate-800/60 text-slate-200">
                         {/* TURNO MATUTINO */}
                         <tr className="bg-slate-950/40">
-                          <td colSpan="6" className="p-2 text-xs font-bold text-emerald-400 tracking-wider uppercase">
+                          <td
+                            colSpan="6"
+                            className="p-2 text-xs font-bold text-emerald-400 tracking-wider uppercase"
+                          >
                             Turno Matutino
                           </td>
                         </tr>
                         <tr>
-                          <td className="p-3 font-medium text-slate-400">08:00 - 09:00</td>
-                          <td className="p-3">
-                            <div className="font-semibold text-white">Eletrônica Básica</div>
-                            <div className="text-xs text-slate-400">André Wild</div>
+                          <td className="p-3 font-medium text-slate-400">
+                            08:00 - 09:00
                           </td>
                           <td className="p-3">
-                            <div className="font-semibold text-white">Filosofia II - Info</div>
-                            <div className="text-xs text-slate-400">Flávio Oliveira</div>
+                            <div className="font-semibold text-white">
+                              Eletrônica Básica
+                            </div>
+                            <div className="text-xs text-slate-400">
+                              André Wild
+                            </div>
                           </td>
                           <td className="p-3">
-                            <div className="font-semibold text-white">Sociologia II - Info</div>
-                            <div className="text-xs text-slate-400">Maria Otavia</div>
+                            <div className="font-semibold text-white">
+                              Filosofia II - Info
+                            </div>
+                            <div className="text-xs text-slate-400">
+                              Flávio Oliveira
+                            </div>
                           </td>
                           <td className="p-3">
-                            <div className="font-semibold text-white">Língua Portuguesa e Lit. II</div>
-                            <div className="text-xs text-slate-400">Mariana Rodrigues</div>
+                            <div className="font-semibold text-white">
+                              Sociologia II - Info
+                            </div>
+                            <div className="text-xs text-slate-400">
+                              Maria Otavia
+                            </div>
                           </td>
                           <td className="p-3">
-                            <div className="font-semibold text-white">Inglês II - Info</div>
-                            <div className="text-xs text-slate-400">Milton Cássio</div>
-                          </td>
-                        </tr>
-                        <tr>
-                          <td className="p-3 font-medium text-slate-400">09:00 - 10:00</td>
-                          <td className="p-3">
-                            <div className="font-semibold text-white">Eletrônica Básica</div>
-                            <div className="text-xs text-slate-400">André Wild</div>
+                            <div className="font-semibold text-white">
+                              Língua Portuguesa e Lit. II
+                            </div>
+                            <div className="text-xs text-slate-400">
+                              Mariana Rodrigues
+                            </div>
                           </td>
                           <td className="p-3">
-                            <div className="font-semibold text-white">Filosofia II - Info</div>
-                            <div className="text-xs text-slate-400">Flávio Oliveira</div>
-                          </td>
-                          <td className="p-3">
-                            <div className="font-semibold text-white">Educação Física II - Info</div>
-                            <div className="text-xs text-slate-400">Thalita Cintra</div>
-                          </td>
-                          <td className="p-3">
-                            <div className="font-semibold text-white">Desenvolvimento Web II</div>
-                            <div className="text-xs text-slate-400">Franciele INFO</div>
-                          </td>
-                          <td className="p-3">
-                            <div className="font-semibold text-white">Inglês II - Info</div>
-                            <div className="text-xs text-slate-400">Milton Cássio</div>
-                          </td>
-                        </tr>
-                        <tr>
-                          <td className="p-3 font-medium text-slate-400">10:20 - 11:20</td>
-                          <td className="p-3">
-                            <div className="font-semibold text-white">Geografia II - Info</div>
-                            <div className="text-xs text-slate-400">Laise Cabral</div>
-                          </td>
-                          <td className="p-3">
-                            <div className="font-semibold text-white">Química II - Info</div>
-                            <div className="text-xs text-slate-400">Gustavo</div>
-                          </td>
-                          <td className="p-3">
-                            <div className="font-semibold text-white">Língua Portuguesa e Lit. II</div>
-                            <div className="text-xs text-slate-400">Mariana Rodrigues</div>
-                          </td>
-                          <td className="p-3">
-                            <div className="font-semibold text-white">Desenvolvimento Web II</div>
-                            <div className="text-xs text-slate-400">Franciele INFO</div>
-                          </td>
-                          <td className="p-3">
-                            <div className="font-semibold text-white">Biologia II - Info</div>
-                            <div className="text-xs text-slate-400">Karine Dias</div>
+                            <div className="font-semibold text-white">
+                              Inglês II - Info
+                            </div>
+                            <div className="text-xs text-slate-400">
+                              Milton Cássio
+                            </div>
                           </td>
                         </tr>
                         <tr>
-                          <td className="p-3 font-medium text-slate-400">11:20 - 12:20</td>
+                          <td className="p-3 font-medium text-slate-400">
+                            09:00 - 10:00
+                          </td>
+                          <td className="p-3">
+                            <div className="font-semibold text-white">
+                              Eletrônica Básica
+                            </div>
+                            <div className="text-xs text-slate-400">
+                              André Wild
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <div className="font-semibold text-white">
+                              Filosofia II - Info
+                            </div>
+                            <div className="text-xs text-slate-400">
+                              Flávio Oliveira
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <div className="font-semibold text-white">
+                              Educação Física II - Info
+                            </div>
+                            <div className="text-xs text-slate-400">
+                              Thalita Cintra
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <div className="font-semibold text-white">
+                              Desenvolvimento Web II
+                            </div>
+                            <div className="text-xs text-slate-400">
+                              Franciele INFO
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <div className="font-semibold text-white">
+                              Inglês II - Info
+                            </div>
+                            <div className="text-xs text-slate-400">
+                              Milton Cássio
+                            </div>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="p-3 font-medium text-slate-400">
+                            10:20 - 11:20
+                          </td>
+                          <td className="p-3">
+                            <div className="font-semibold text-white">
+                              Geografia II - Info
+                            </div>
+                            <div className="text-xs text-slate-400">
+                              Laise Cabral
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <div className="font-semibold text-white">
+                              Química II - Info
+                            </div>
+                            <div className="text-xs text-slate-400">
+                              Gustavo
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <div className="font-semibold text-white">
+                              Língua Portuguesa e Lit. II
+                            </div>
+                            <div className="text-xs text-slate-400">
+                              Mariana Rodrigues
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <div className="font-semibold text-white">
+                              Desenvolvimento Web II
+                            </div>
+                            <div className="text-xs text-slate-400">
+                              Franciele INFO
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <div className="font-semibold text-white">
+                              Biologia II - Info
+                            </div>
+                            <div className="text-xs text-slate-400">
+                              Karine Dias
+                            </div>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="p-3 font-medium text-slate-400">
+                            11:20 - 12:20
+                          </td>
                           <td className="p-3 text-slate-500">-</td>
                           <td className="p-3">
-                            <div className="font-semibold text-white">Química II - Info</div>
-                            <div className="text-xs text-slate-400">Gustavo</div>
+                            <div className="font-semibold text-white">
+                              Química II - Info
+                            </div>
+                            <div className="text-xs text-slate-400">
+                              Gustavo
+                            </div>
                           </td>
                           <td className="p-3">
-                            <div className="font-semibold text-white">Matemática II - Info</div>
-                            <div className="text-xs text-slate-400">Pedro Cortes</div>
+                            <div className="font-semibold text-white">
+                              Matemática II - Info
+                            </div>
+                            <div className="text-xs text-slate-400">
+                              Pedro Cortes
+                            </div>
                           </td>
                           <td className="p-3">
-                            <div className="font-semibold text-white">Língua Portuguesa e Lit. II</div>
-                            <div className="text-xs text-slate-400">Mariana Rodrigues</div>
+                            <div className="font-semibold text-white">
+                              Língua Portuguesa e Lit. II
+                            </div>
+                            <div className="text-xs text-slate-400">
+                              Mariana Rodrigues
+                            </div>
                           </td>
                           <td className="p-3">
-                            <div className="font-semibold text-white">Biologia II - Info</div>
-                            <div className="text-xs text-slate-400">Karine Dias</div>
+                            <div className="font-semibold text-white">
+                              Biologia II - Info
+                            </div>
+                            <div className="text-xs text-slate-400">
+                              Karine Dias
+                            </div>
                           </td>
                         </tr>
 
                         {/* TURNO VESPERTINO */}
                         <tr className="bg-slate-950/40">
-                          <td colSpan="6" className="p-2 text-xs font-bold text-amber-400 tracking-wider uppercase">
+                          <td
+                            colSpan="6"
+                            className="p-2 text-xs font-bold text-amber-400 tracking-wider uppercase"
+                          >
                             Turno Vespertino
                           </td>
                         </tr>
                         <tr>
-                          <td className="p-3 font-medium text-slate-400">13:50 - 14:50</td>
+                          <td className="p-3 font-medium text-slate-400">
+                            13:50 - 14:50
+                          </td>
                           <td className="p-3">
-                            <div className="font-semibold text-white">Paradigma Orientação Objeto</div>
+                            <div className="font-semibold text-white">
+                              Paradigma Orientação Objeto
+                            </div>
                             <div className="text-xs text-slate-400">Renato</div>
                           </td>
                           <td className="p-3 text-slate-500">-</td>
                           <td className="p-3">
-                            <div className="font-semibold text-white">História II - Info</div>
+                            <div className="font-semibold text-white">
+                              História II - Info
+                            </div>
                             <div className="text-xs text-slate-400">Daniel</div>
                           </td>
                           <td className="p-3 text-slate-500">-</td>
                           <td className="p-3">
-                            <div className="font-semibold text-white">Física II - Info</div>
-                            <div className="text-xs text-slate-400">Elisângela</div>
+                            <div className="font-semibold text-white">
+                              Física II - Info
+                            </div>
+                            <div className="text-xs text-slate-400">
+                              Elisângela
+                            </div>
                           </td>
                         </tr>
                         <tr>
-                          <td className="p-3 font-medium text-slate-400">14:50 - 15:50</td>
+                          <td className="p-3 font-medium text-slate-400">
+                            14:50 - 15:50
+                          </td>
                           <td className="p-3">
-                            <div className="font-semibold text-white">Paradigma Orientação Objeto</div>
+                            <div className="font-semibold text-white">
+                              Paradigma Orientação Objeto
+                            </div>
                             <div className="text-xs text-slate-400">Renato</div>
                           </td>
                           <td className="p-3 text-slate-500">-</td>
                           <td className="p-3">
-                            <div className="font-semibold text-white">História II - Info</div>
+                            <div className="font-semibold text-white">
+                              História II - Info
+                            </div>
                             <div className="text-xs text-slate-400">Daniel</div>
                           </td>
                           <td className="p-3 text-slate-500">-</td>
                           <td className="p-3">
-                            <div className="font-semibold text-white">Física II - Info</div>
-                            <div className="text-xs text-slate-400">Elisângela</div>
+                            <div className="font-semibold text-white">
+                              Física II - Info
+                            </div>
+                            <div className="text-xs text-slate-400">
+                              Elisângela
+                            </div>
                           </td>
                         </tr>
                         <tr>
-                          <td className="p-3 font-medium text-slate-400">16:00 - 17:00</td>
+                          <td className="p-3 font-medium text-slate-400">
+                            16:00 - 17:00
+                          </td>
                           <td className="p-3">
-                            <div className="font-semibold text-white">Artes - Info</div>
-                            <div className="text-xs text-slate-400">Daivdson</div>
+                            <div className="font-semibold text-white">
+                              Artes - Info
+                            </div>
+                            <div className="text-xs text-slate-400">
+                              Daivdson
+                            </div>
                           </td>
                           <td className="p-3 text-slate-500">-</td>
                           <td className="p-3">
-                            <div className="font-semibold text-white">Tópicos I - Informática</div>
-                            <div className="text-xs text-slate-400">Franciele INFO</div>
+                            <div className="font-semibold text-white">
+                              Tópicos I - Informática
+                            </div>
+                            <div className="text-xs text-slate-400">
+                              Franciele INFO
+                            </div>
                           </td>
                           <td className="p-3 text-slate-500">-</td>
                           <td className="p-3">
-                            <div className="font-semibold text-white">Matemática II - Info</div>
-                            <div className="text-xs text-slate-400">Pedro Cortes</div>
+                            <div className="font-semibold text-white">
+                              Matemática II - Info
+                            </div>
+                            <div className="text-xs text-slate-400">
+                              Pedro Cortes
+                            </div>
                           </td>
                         </tr>
                         <tr>
-                          <td className="p-3 font-medium text-slate-400">17:00 - 18:00</td>
+                          <td className="p-3 font-medium text-slate-400">
+                            17:00 - 18:00
+                          </td>
                           <td className="p-3 text-slate-500">-</td>
                           <td className="p-3 text-slate-500">-</td>
                           <td className="p-3">
-                            <div className="font-semibold text-white">Tópicos I - Informática</div>
-                            <div className="text-xs text-slate-400">Franciele INFO</div>
+                            <div className="font-semibold text-white">
+                              Tópicos I - Informática
+                            </div>
+                            <div className="text-xs text-slate-400">
+                              Franciele INFO
+                            </div>
                           </td>
                           <td className="p-3 text-slate-500">-</td>
                           <td className="p-3">
-                            <div className="font-semibold text-white">Matemática II - Info</div>
-                            <div className="text-xs text-slate-400">Pedro Cortes</div>
+                            <div className="font-semibold text-white">
+                              Matemática II - Info
+                            </div>
+                            <div className="text-xs text-slate-400">
+                              Pedro Cortes
+                            </div>
                           </td>
                         </tr>
                       </tbody>
