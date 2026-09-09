@@ -30,6 +30,62 @@ const verificarAutenticacao = (req, res, next) => {
   next();
 };
 
+// ==========================================
+// FILTRO DE LINGUAGEM OFENSIVA (mesma lógica do frontend, replicada aqui)
+// Isso é obrigatório no servidor: o filtro do cliente pode ser burlado por
+// quem chamar a API diretamente (Postman, curl, DevTools). Esta é a camada
+// que realmente impede a gravação de conteúdo ofensivo no banco.
+// ==========================================
+const PALAVRAS_BLOQUEADAS = [
+  "idiota",
+  "burro",
+  "burra",
+  "imbecil",
+  "estupido",
+  "estúpido",
+  "estupida",
+  "estúpida",
+  "otario",
+  "otário",
+  "otaria",
+  "otária",
+  "lixo",
+  "inutil",
+  "inútil",
+  "porra",
+  "merda",
+  "bosta",
+  "cretino",
+  "cretina",
+  "retardado",
+  "retardada",
+  "vagabundo",
+  "vagabunda",
+  "escroto",
+  "escrota",
+  "desgraçado",
+  "desgraçada",
+  "vadia",
+  "vadio",
+  "puta",
+  "viado",
+  "bicha",
+];
+
+function normalizarTexto(txt) {
+  return String(txt)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, ""); // remove acentos
+}
+
+function contemOfensa(texto) {
+  const normalizado = normalizarTexto(texto);
+  return PALAVRAS_BLOQUEADAS.some((palavra) =>
+    normalizado.includes(normalizarTexto(palavra)),
+  );
+}
+
 // Rota de Login/Validação de Senha
 app.post("/api/login", (req, res) => {
   const { senha } = req.body;
@@ -55,7 +111,6 @@ app.post("/api/provas", verificarAutenticacao, async (req, res) => {
   res.status(201).json(data);
 });
 
-// NOVA ROTA: Atualizar uma prova/atividade existente (usada na edição do frontend)
 app.put("/api/provas/:id", verificarAutenticacao, async (req, res) => {
   const { id } = req.params;
   const { title, tipo, start, descricao } = req.body;
@@ -86,14 +141,12 @@ app.delete("/api/provas/:id", verificarAutenticacao, async (req, res) => {
 // ROTAS DE MATERIAIS (PDFs)
 // ==========================================
 
-// 1. Listar Materiais (Público)
 app.get("/api/materiais", async (req, res) => {
   const { data, error } = await supabase.from("materiais").select("*");
   if (error) return res.status(500).json({ error: error.message });
   res.json(data);
 });
 
-// 2. Criar Material com Upload (Protegido) - Usa upload.single("arquivo")
 app.post(
   "/api/materiais",
   verificarAutenticacao,
@@ -106,11 +159,9 @@ app.post(
       if (!arquivo)
         return res.status(400).json({ error: "Nenhum arquivo enviado." });
 
-      // Gera um nome único para o arquivo no Supabase Storage
       const extensao = arquivo.originalname.split(".").pop();
       const nomeArquivoUnico = `${Date.now()}_${Math.random().toString(36).substring(7)}.${extensao}`;
 
-      // Upload do buffer para o Storage do Supabase (Bucket MATERIAIS_PDF)
       const { data: storageData, error: storageError } = await supabase.storage
         .from("MATERIAIS_PDF")
         .upload(nomeArquivoUnico, arquivo.buffer, {
@@ -119,12 +170,10 @@ app.post(
 
       if (storageError) throw storageError;
 
-      // Pega a URL pública
       const { data: publicUrlData } = supabase.storage
         .from("MATERIAIS_PDF")
         .getPublicUrl(nomeArquivoUnico);
 
-      // Salva no banco de dados
       const { error: dbError } = await supabase.from("materiais").insert([
         {
           nome: nome,
@@ -142,12 +191,10 @@ app.post(
   },
 );
 
-// 3. Deletar Material (Protegido)
 app.delete("/api/materiais/:id", verificarAutenticacao, async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Busca o material para pegar a URL e deletar do Storage
     const { data: material } = await supabase
       .from("materiais")
       .select("url")
@@ -157,11 +204,9 @@ app.delete("/api/materiais/:id", verificarAutenticacao, async (req, res) => {
     if (material && material.url) {
       const partesUrl = material.url.split("/");
       const nomeArquivo = partesUrl[partesUrl.length - 1];
-      // Apaga o arquivo físico do Storage
       await supabase.storage.from("MATERIAIS_PDF").remove([nomeArquivo]);
     }
 
-    // Apaga o registro do banco de dados
     const { error } = await supabase.from("materiais").delete().eq("id", id);
     if (error) throw error;
 
@@ -169,6 +214,65 @@ app.delete("/api/materiais/:id", verificarAutenticacao, async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+});
+
+// ==========================================
+// ROTAS DO FÓRUM (Sugestões dos alunos)
+// ==========================================
+
+// 1. Listar sugestões (Público) — mais recentes primeiro
+app.get("/api/forum", async (req, res) => {
+  const { data, error } = await supabase
+    .from("forum")
+    .select("*")
+    .order("criado_em", { ascending: false });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// 2. Criar sugestão (Público — qualquer aluno pode postar, sem senha)
+//    Bloqueia automaticamente se detectar linguagem ofensiva.
+app.post("/api/forum", async (req, res) => {
+  const { nome, texto } = req.body;
+
+  if (!nome || !nome.trim() || !texto || !texto.trim()) {
+    return res
+      .status(400)
+      .json({ error: "Nome e sugestão são obrigatórios." });
+  }
+
+  if (nome.length > 100 || texto.length > 2000) {
+    return res.status(400).json({ error: "Texto muito longo." });
+  }
+
+  if (contemOfensa(nome) || contemOfensa(texto)) {
+    return res.status(422).json({
+      error:
+        "Sua mensagem contém linguagem ofensiva e não foi publicada. Reescreva de forma construtiva.",
+    });
+  }
+
+  const { data, error } = await supabase
+    .from("forum")
+    .insert([
+      {
+        nome: nome.trim(),
+        texto: texto.trim(),
+        criado_em: new Date().toISOString(),
+      },
+    ])
+    .select();
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.status(201).json({ message: "Sugestão publicada com sucesso!", data: data[0] });
+});
+
+// 3. Apagar sugestão (Protegido — só o Representante/Editor)
+app.delete("/api/forum/:id", verificarAutenticacao, async (req, res) => {
+  const { id } = req.params;
+  const { error } = await supabase.from("forum").delete().eq("id", id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ message: "Sugestão removida com sucesso" });
 });
 
 const PORT = process.env.PORT || 3000;
